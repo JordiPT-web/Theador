@@ -1,5 +1,7 @@
 from enum import Enum
-from fastapi import Depends, HTTPException, status, Header
+from typing import Dict
+
+from fastapi import Depends, HTTPException, Header, status
 
 
 class Role(str, Enum):
@@ -9,14 +11,19 @@ class Role(str, Enum):
     CLIENT = "client"
 
 
-async def get_current_role(x_role: str | None = Header(default=None)) -> Role:
-    """Fetch the role from the X-Role header."""
-    if x_role is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing role")
-    try:
-        return Role(x_role)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown role") from exc
+# In-memory store for user roles. Pre-populate an admin user so that
+# tests and first-time setup have an administrator available.
+user_roles: Dict[str, Role] = {"admin": Role.ADMIN}
+
+
+async def get_current_role(x_user: str | None = Header(default=None)) -> Role:
+    """Fetch the role for the current user from the X-User header."""
+    if x_user is None or x_user not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unknown user",
+        )
+    return user_roles[x_user]
 
 
 def role_required(*allowed: Role):
