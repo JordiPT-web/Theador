@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict
+from typing import Dict, Tuple
 
 from fastapi import Depends, HTTPException, Header, status
 
@@ -16,20 +16,24 @@ class Role(str, Enum):
 user_roles: Dict[str, Role] = {"admin": Role.ADMIN}
 
 
-async def get_current_role(x_user: str | None = Header(default=None)) -> Role:
-    """Fetch the role for the current user from the X-User header."""
+async def get_current_user(x_user: str | None = Header(default=None)) -> Tuple[str, Role]:
+    """Return the username and role for the current request."""
     if x_user is None or x_user not in user_roles:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unknown user",
         )
-    return user_roles[x_user]
+    return x_user, user_roles[x_user]
 
 
 def role_required(*allowed: Role):
-    async def _dep(role: Role = Depends(get_current_role)) -> Role:
+    async def _dep(user: Tuple[str, Role] = Depends(get_current_user)) -> Tuple[str, Role]:
+        username, role = user
         if role not in allowed:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
-        return role
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions",
+            )
+        return username, role
 
     return _dep

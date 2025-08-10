@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Theador</title>
+</head>
+<body>
+  <h1>Theador Client Dashboard</h1>
+  <div id="content">Loading...</div>
+  <script>
+  async function loadSummary() {
+    try {
+      const resp = await fetch('/clients/1/summary', {headers: {'X-User': 'cl'}});
+      const data = await resp.json();
+      document.getElementById('content').textContent = JSON.stringify(data);
+    } catch (e) {
+      document.getElementById('content').textContent = 'Error loading summary';
+    }
+  }
+  loadSummary();
+  </script>
+</body>
+</html>
